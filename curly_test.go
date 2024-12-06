@@ -222,7 +222,6 @@ func TestCurlyPower(t *testing.T) {
 	bill, err = curly.Format(bill, curly.NewMapFormatter(data))
 	require.NoError(t, err)
 
-	//t.Logf("%#v", data)
 	t.Log(bill)
 }
 

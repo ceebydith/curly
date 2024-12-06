@@ -40,22 +40,6 @@ func Format(text string, formatters ...Formatter) (string, error) {
 		} else {
 			value = val
 		}
-		// if modifier != "" {
-		// 	var modif Modifier
-		// 	for _, m := range DefaultModifier() {
-		// 		if m.Valid(modifier) {
-		// 			modif = m
-		// 			break
-		// 		}
-		// 	}
-		// 	if modif == nil {
-		// 		return "", fmt.Errorf("invalid expression: \"%s\"", match[1])
-		// 	}
-		// 	value, err = modif.Modify(fmt.Sprintf("%v", value), modifier)
-		// 	if err != nil {
-		// 		return "", err
-		// 	}
-		// }
 		result = strings.Replace(result, match[0], fmt.Sprintf("%v", value), 1)
 	}
 	if strings.Contains(result, "{") || strings.Contains(result, "}") {
@@ -189,23 +173,6 @@ func Parse[T string | []string](text string, expression T, parsers ...Parser) (m
 					} else {
 						value = val
 					}
-					// if target[2] != "" {
-					// 	var modifier Modifier
-					// 	for _, m := range DefaultModifier() {
-					// 		if m.Valid(target[2]) {
-					// 			modifier = m
-					// 			break
-					// 		}
-					// 	}
-					// 	if modifier == nil {
-					// 		return nil, fmt.Errorf("invalid expression : \"%s\"", target[0])
-					// 	}
-					// 	if val, err := modifier.Modify(fmt.Sprintf("%v", value), target[2]); err != nil {
-					// 		return nil, fmt.Errorf("invalid expression : \"%s\"", target[0])
-					// 	} else {
-					// 		value = val
-					// 	}
-					// }
 					result[target[1]] = value
 					parsed = true
 					break
