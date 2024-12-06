@@ -14,6 +14,7 @@ var (
 	defaultModifiers []Modifier
 )
 
+// DefaultModifier manages the default list of modifiers.
 func DefaultModifier(modifiers ...Modifier) []Modifier {
 	if len(modifiers) != 0 {
 		mu.Lock()
@@ -25,30 +26,37 @@ func DefaultModifier(modifiers ...Modifier) []Modifier {
 	return defaultModifiers
 }
 
+// Modifier is an interface that defines methods for validating and modifying values with specific modifiers.
 type Modifier interface {
 	Valid(modifier string) bool
 	Modify(value string, modifier string, onfailed ...func(value any, modifier string) (any, error)) (any, error)
 }
 
+// NewNumberModifier creates a new instance of NumberModifier.
 func NewNumberModifier() *NumberModifier {
 	return &NumberModifier{}
 }
 
+// NewStringModifier creates a new instance of StringModifier.
 func NewStringModifier() *StringModifier {
 	return &StringModifier{}
 }
 
+// NewFormatModifier creates a new instance of FormatModifier.
 func NewFormatModifier() *FormatModifier {
 	return &FormatModifier{}
 }
 
+// NumberModifier implements Modifier for numerical expressions.
 type NumberModifier struct{}
 
+// Valid checks if the modifier is a valid numerical expression.
 func (m *NumberModifier) Valid(modifier string) bool {
 	reg := regexp.MustCompile(`^\s*[\*/\+\-][\s\.\*/\+\-\(\)0-9]*?[0-9\)]\s*$`)
 	return reg.MatchString(modifier) && charCount('(', modifier) == charCount(')', modifier)
 }
 
+// Modify applies the numerical modifier to the given value.
 func (m *NumberModifier) Modify(value string, modifier string, onfailed ...func(value any, modifier string) (any, error)) (any, error) {
 	modifier = value + modifier
 	syntax := "(" + modifier + ")"
@@ -113,14 +121,17 @@ func (m *NumberModifier) Modify(value string, modifier string, onfailed ...func(
 	return nil, fmt.Errorf("invalid expression: \"%s\"", modifier)
 }
 
+// StringModifier implements Modifier for string transformations.
 type StringModifier struct{}
 
+// Valid checks if the modifier is a valid string transformation expression.
 func (m *StringModifier) Valid(modifier string) bool {
 	modifier = strings.Trim(modifier, " |") + "|"
 	reg := regexp.MustCompile(`(?i)^(\s*(pre|post|sub|cut|flip|remove|delete)\((.*?)\)\s*\|)+$`)
 	return reg.MatchString(modifier)
 }
 
+// Modify applies the string transformation modifier to the given value.
 func (m *StringModifier) Modify(value string, modifier string, onfailed ...func(value any, modifier string) (any, error)) (any, error) {
 	var result any = value
 	syntax := strings.Trim(modifier, " |")
@@ -213,14 +224,17 @@ func (m *StringModifier) Modify(value string, modifier string, onfailed ...func(
 	return result, nil
 }
 
+// FormatModifier implements Modifier for formatting transformations.
 type FormatModifier struct{}
 
+// Valid checks if the modifier is a valid formatting expression.
 func (m *FormatModifier) Valid(modifier string) bool {
 	modifier = strings.Trim(modifier, " |") + "|"
 	reg := regexp.MustCompile(`(?i)^(\s*(money|left|center|right)\((.*?)\)\s*\|)+$`)
 	return reg.MatchString(modifier)
 }
 
+// Modify applies the formatting modifier to the given value.
 func (m *FormatModifier) Modify(value string, modifier string, onfailed ...func(value any, modifier string) (any, error)) (any, error) {
 	var result any = value
 	syntax := strings.Trim(modifier, " |")
@@ -310,6 +324,7 @@ func (m *FormatModifier) Modify(value string, modifier string, onfailed ...func(
 	return result, nil
 }
 
+// Initialize default modifiers.
 func init() {
 	DefaultModifier(NewFormatModifier(), NewNumberModifier(), NewStringModifier())
 }

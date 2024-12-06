@@ -7,6 +7,7 @@ import (
 	"strings"
 )
 
+// ValidIdentifier checks if the given identifier is in the list of valid identifiers.
 func ValidIdentifier(identifier string, identifiers []string) bool {
 	identifier = strings.ToLower(identifier)
 	for _, i := range identifiers {
@@ -17,6 +18,7 @@ func ValidIdentifier(identifier string, identifiers []string) bool {
 	return false
 }
 
+// charCount counts the occurrences of a character in a string.
 func charCount(char rune, str string) int {
 	count := 0
 	for _, c := range str {
@@ -27,6 +29,7 @@ func charCount(char rune, str string) int {
 	return count
 }
 
+// numberOf converts a string to a float64 after removing spaces.
 func numberOf(num string) (float64, error) {
 	n := strings.ReplaceAll(num, " ", "")
 	v, err := strconv.ParseFloat(n, 64)
@@ -36,6 +39,7 @@ func numberOf(num string) (float64, error) {
 	return v, nil
 }
 
+// calculate performs arithmetic operations (+, -, *, /) on two string numbers.
 func calculate(a string, opr string, b string) (float64, error) {
 	x, err := numberOf(a)
 	if err != nil {
@@ -58,6 +62,7 @@ func calculate(a string, opr string, b string) (float64, error) {
 	return 0, fmt.Errorf("invalid operator: \"%s\"", opr)
 }
 
+// stringSplit splits a string or slice of strings based on the provided delimiter.
 func stringSplit[T string | []string](str T) []string {
 	switch val := any(str).(type) {
 	case []string:
@@ -76,6 +81,7 @@ func stringSplit[T string | []string](str T) []string {
 	return nil
 }
 
+// stringJoin joins a string or slice of strings with a delimiter.
 func stringJoin[T string | []string](str T) string {
 	switch val := any(str).(type) {
 	case string:
@@ -91,6 +97,7 @@ func stringJoin[T string | []string](str T) string {
 	return ""
 }
 
+// execModifier applies a modifier to a value and returns the modified value.
 func execModifier(value any, modifier string) (any, error) {
 	if modifier == "" {
 		return value, nil

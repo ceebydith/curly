@@ -1,25 +1,29 @@
-# curly
+# Curly
 
-curly is a simple Go package that provides a flexible way to format strings using dynamic values. It allows you to define placeholders within a string and replace them with values from predefined maps or custom maps you provide.
+Curly is a versatile Go package designed for formatting and parsing text based on custom identifiers and expressions. It provides a flexible framework for working with text modifications, number calculations, and more, making it an essential tool for various text processing tasks.
 
 ## Features
 
-- Dynamic date and time formatting
-- Automatic detection of application and current working directories
-- Customizable placeholders with static or dynamic values
-- Easy integration into your Go projects
-- Error handling for unresolved placeholders
+- **Format Text**: Apply a series of formatters to the text and modify it according to custom rules.
+- **Parse Text**: Extract data from text based on predefined expressions and parsers.
+- **Number Calculations**: Perform mathematical operations on formatted strings.
+- **String Modifications**: Modify strings based on specified expressions.
+- **More...**: Explore more features and functionalities in the test package [`curly_test.go`](https://github.com/ceebydith/curly/blob/main/curly_test.go).
 
 ## Installation
 
-To install Curly, use `go get`:
+To install the package, use the following command:
 
-```bash
+```sh
 go get github.com/ceebydith/curly
 ```
 
 ## Usage
-Here's a basic example of how to use Curly:
+
+### Formatting Text
+
+Use the `Format` function to apply a series of formatters to a text string:
+
 ```go
 package main
 
@@ -29,42 +33,100 @@ import (
 )
 
 func main() {
-    str := "Year: {yyyy}, Month: {mm}, Day: {dd}, App Directory: {appdir}"
-    result, err := curly.Format(str)
+    text := "Today's date is {yyyy}-{mm}-{dd}"
+    formatted, err := curly.Format(text)
     if err != nil {
         fmt.Println("Error:", err)
-    } else {
-        fmt.Println(result)
+        return
     }
-}
-```
-You can also provide custom maps to override the default values:
-```go
-customMaps := map[string]any{"yyyy": "2025"}
-str := "Year: {yyyy}"
-result, err := curly.Format(str, customMaps)
-if err != nil {
-        fmt.Println("Error:", err)
-} else {
-        fmt.Println(result)
+    fmt.Println("Formatted Text:", formatted)
 }
 ```
 
-## Functions
-`Format`
+### Parsing Text
+
+Use the `Parse` function to extract data from text based on provided expressions and parsers:
+
 ```go
-func Format(str string, maps ...map[string]any) (string, error)
+package main
+
+import (
+    "fmt"
+    "github.com/ceebydith/curly"
+)
+
+func main() {
+    text := "The price is 123.45 dollars"
+    expression := "{price:num}"
+    result, err := curly.Parse(text, expression)
+    if err != nil {
+        fmt.Println("Error:", err)
+        return
+    }
+    fmt.Println("Parsed Result:", result)
+}
 ```
-Replaces placeholders in the input string with their corresponding values from the provided maps. Returns the formatted string and an error if unresolved placeholders remain.
+
+### Number Calculations
+
+Use the `NumberCalculate` function to evaluate mathematical expressions after formatting:
+
+```go
+package main
+
+import (
+    "fmt"
+    "github.com/ceebydith/curly"
+)
+
+func main() {
+    expression := "2 * (3 + 4)"
+    result, err := curly.NumberCalculate(expression)
+    if err != nil {
+        fmt.Println("Error:", err)
+        return
+    }
+    fmt.Println("Calculation Result:", result)
+}
+```
+
+### String Modifications
+
+Use the `StringModify` function to apply modifications to text based on specified expressions:
+
+```go
+package main
+
+import (
+    "fmt"
+    "github.com/ceebydith/curly"
+)
+
+func main() {
+    text := " hello world "
+    expressions := "pre(Greetings, )|post(!)"
+    result, err := curly.StringModify(text, expressions)
+    if err != nil {
+        fmt.Println("Error:", err)
+        return
+    }
+    fmt.Println("Modified String:", result)
+}
+```
+
+## Documentation
+
+For more detailed documentation, visit the [pkg.go.dev](https://pkg.go.dev/github.com/ceebydith/curly) page.
 
 ## Contributing
-Contributions are welcome! Please open an issue or submit a pull request for any improvements or bug fixes.
+
+Contributions are welcome! Feel free to open an issue or submit a pull request. For major changes, please open an issue first to discuss what you would like to change.
+Fork the repository
+Create your feature branch (`git checkout -b feature/your-feature`)
+Commit your changes (`git commit -m 'Add some feature'`)
+Push to the branch (`git push origin feature/your-feature`)
+Open a pull request
 
 ## License
-This project is licensed under the MIT License. See the [LICENSE](https://github.com/ceebydith/curly/blob/master/LICENSE) file for details.
 
-## Acknowledgements
-Special thanks to the Go community and contributors who made this project possible.
-
-
-Feel free to customize the content to better fit your project's specific details, such as replacing placeholder URLs and user information. Let me know if there's anything else you'd like to add or adjust!
+This project is licensed under the MIT License - see the [LICENSE](https://github.com/ceebydith/curly/blob/main/LICENSE) file for details.

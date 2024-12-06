@@ -9,29 +9,35 @@ import (
 	"time"
 )
 
+// Formatter is an interface for formatting values based on identifiers.
 type Formatter interface {
 	Valid(identifier string) bool
 	Value(identifier string) (any, error)
 }
 
+// NewMapFormatter creates a new MapFormatter with the provided map.
 func NewMapFormatter(maps map[string]any) *MapFormatter {
 	return &MapFormatter{
 		maps: maps,
 	}
 }
 
+// NewDatetimeFormatter creates a new DatetimeFormatter.
 func NewDatetimeFormatter() *DatetimeFormatter {
 	return &DatetimeFormatter{}
 }
 
+// NewDirectoryFormatter creates a new DirectoryFormatter.
 func NewDirectoryFormatter() *DirectoryFormatter {
 	return &DirectoryFormatter{}
 }
 
+// MapFormatter formats values based on a map of identifiers.
 type MapFormatter struct {
 	maps map[string]any
 }
 
+// Valid checks if the identifier is valid in the map.
 func (f *MapFormatter) Valid(identifier string) bool {
 	identifier = strings.ToLower(identifier)
 	for key := range f.maps {
@@ -42,6 +48,7 @@ func (f *MapFormatter) Valid(identifier string) bool {
 	return false
 }
 
+// Value returns the value associated with the identifier in the map.
 func (f *MapFormatter) Value(identifier string) (any, error) {
 	identifier = strings.ToLower(identifier)
 	for key, val := range f.maps {
@@ -52,8 +59,10 @@ func (f *MapFormatter) Value(identifier string) (any, error) {
 	return nil, fmt.Errorf("invalid identifier: \"%s\"", identifier)
 }
 
+// DatetimeFormatter formats values based on date and time.
 type DatetimeFormatter struct{}
 
+// Valid checks if the identifier is a valid date or time identifier.
 func (f *DatetimeFormatter) Valid(identifier string) bool {
 	identifier = strings.ToLower(identifier)
 	identifiers := []string{"yyyy", "yy", "mm", "dd", "hh", "nn", "ss"}
@@ -65,6 +74,7 @@ func (f *DatetimeFormatter) Valid(identifier string) bool {
 	return false
 }
 
+// Value returns the current date or time based on the identifier.
 func (f *DatetimeFormatter) Value(identifier string) (any, error) {
 	identifier = strings.ToLower(identifier)
 	switch identifier {
@@ -86,6 +96,7 @@ func (f *DatetimeFormatter) Value(identifier string) (any, error) {
 	return nil, fmt.Errorf("invalid identifier: \"%s\"", identifier)
 }
 
+// DirectoryFormatter formats values based on the directory paths.
 type DirectoryFormatter struct {
 	once   sync.Once
 	appdir string
@@ -93,10 +104,12 @@ type DirectoryFormatter struct {
 	err    error
 }
 
+// Valid checks if the identifier is a valid directory identifier.
 func (f *DirectoryFormatter) Valid(identifier string) bool {
 	return identifier == "appdir" || identifier == "curdir"
 }
 
+// Value returns the directory path based on the identifier.
 func (f *DirectoryFormatter) Value(identifier string) (any, error) {
 	f.once.Do(func() {
 		exe, err := os.Executable()
