@@ -57,8 +57,8 @@ import (
 
 func main() {
     text := "The price is 123.45 dollars"
-    expression := "{price:num}"
-    result, err := curly.Parse(text, expression)
+    expression := "price is {price} dollars"
+    result, err := curly.Parse(text, expression, curly.NewNumberParser())
     if err != nil {
         fmt.Println("Error:", err)
         return
