@@ -1,90 +1,241 @@
-// Package curly provides a simple way to format strings using dynamic values.
-// It allows users to define placeholders within a string and replace them with values
-// from predefined maps or custom maps. This package is useful for generating dynamic
-// content such as configuration files, messages, and paths.
 package curly
 
 import (
-	"errors"
-	"os"
-	"path/filepath"
+	"fmt"
+	"regexp"
 	"strings"
-	"time"
 )
 
-// ErrResolve is returned when there are unresolved placeholders in the string
-var ErrResolve = errors.New("resolve error")
-
-// DefaultMaps contains predefined keys with static and dynamic values/functions
-var DefaultMaps = map[string]any{
-	"yyyy":   formatTime("2006"), // Full year (e.g., 2024)
-	"yy":     formatTime("06"),   // Last two digits of the year (e.g., 24)
-	"mm":     formatTime("01"),   // Month (01-12)
-	"dd":     formatTime("02"),   // Day of the month (01-31)
-	"hh":     formatTime("15"),   // Hour (00-23)
-	"nn":     formatTime("04"),   // Minute (00-59)
-	"ss":     formatTime("05"),   // Second (00-59)
-	"appdir": getAppDir(),        // Directory of the executable
-	"curdir": getCurDir(),        // Current working directory
-}
-
-// formatTime creates a function to format current time based on the provided layout
-func formatTime(layout string) func(string) string {
-	return func(key string) string { return time.Now().Format(layout) }
-}
-
-// getAppDir returns the directory of the executable file
-func getAppDir() string {
-	exe, err := os.Executable()
-	if err != nil {
-		return "{appdir}" // Fallback value if there's an error
+func Format(text string, formatters ...Formatter) (string, error) {
+	if len(formatters) == 0 {
+		formatters = append(formatters, NewDatetimeFormatter(), NewDirectoryFormatter())
 	}
-	return filepath.Dir(exe)
-}
 
-// getCurDir returns the current working directory
-func getCurDir() string {
-	dir, err := os.Getwd()
-	if err != nil {
-		return "{curdir}" // Fallback value if there's an error
+	result := strings.ReplaceAll(text, "%", "%25")
+	result = strings.ReplaceAll(result, "\\{", "%7B")
+	result = strings.ReplaceAll(result, "\\}", "%7D")
+	reg := regexp.MustCompile(`(?i)\{\s*([a-z]+([\._]?[a-z0-9]+)*)\s*([\*/\+\-:\|][^\}]+)?\}`)
+	matches := reg.FindAllStringSubmatch(result, -1)
+	for _, match := range matches {
+		identifier := match[1]
+		modifier := strings.TrimSpace(match[3])
+
+		var formatter Formatter
+		for _, f := range formatters {
+			if f.Valid(identifier) {
+				formatter = f
+				break
+			}
+		}
+		if formatter == nil {
+			return "", fmt.Errorf("invalid expression: \"%s\"", match[1])
+		}
+		value, err := formatter.Value(identifier)
+		if err != nil {
+			return "", err
+		}
+
+		if val, err := execModifier(value, modifier); err != nil {
+			return "", fmt.Errorf("invalid expression: \"%s\"", match[0])
+		} else {
+			value = val
+		}
+		// if modifier != "" {
+		// 	var modif Modifier
+		// 	for _, m := range DefaultModifier() {
+		// 		if m.Valid(modifier) {
+		// 			modif = m
+		// 			break
+		// 		}
+		// 	}
+		// 	if modif == nil {
+		// 		return "", fmt.Errorf("invalid expression: \"%s\"", match[1])
+		// 	}
+		// 	value, err = modif.Modify(fmt.Sprintf("%v", value), modifier)
+		// 	if err != nil {
+		// 		return "", err
+		// 	}
+		// }
+		result = strings.Replace(result, match[0], fmt.Sprintf("%v", value), 1)
 	}
-	return dir
-}
-
-// resolved checks if all placeholders in the string have been resolved.
-// Returns an error if there are unresolved placeholders.
-func resolved(str string) error {
-	// Remove escaped placeholders from consideration
-	str = strings.ReplaceAll(str, "\\{", "")
-	str = strings.ReplaceAll(str, "\\}", "")
-	if strings.Contains(str, "{") || strings.Contains(str, "}") {
-		return ErrResolve
+	if strings.Contains(result, "{") || strings.Contains(result, "}") {
+		return "", fmt.Errorf("invalid expression: \"%s\"", text)
 	}
-	return nil
+	result = strings.ReplaceAll(result, "%7D", "}")
+	result = strings.ReplaceAll(result, "%7B", "{")
+	result = strings.ReplaceAll(result, "%25", "%")
+
+	return result, nil
 }
 
-// Format replaces placeholders in the input string with their corresponding values from the provided maps.
-// If multiple maps are provided, the values from the later maps will override those from the earlier ones.
-// Returns the formatted string and an error if unresolved placeholders remain.
-func Format(str string, maps ...map[string]any) (string, error) {
-	// Append the DefaultMaps to the provided maps
-	maps = append(maps, DefaultMaps)
-	for _, m := range maps {
-		for key, val := range m {
-			switch v := val.(type) {
-			case string:
-				str = strings.ReplaceAll(str, "{"+key+"}", v)
-			case func(string) string:
-				str = strings.ReplaceAll(str, "{"+key+"}", v(key))
+func Parse[T string | []string](text string, expression T, parsers ...Parser) (map[string]any, error) {
+	parsers = append(parsers, NewStringParser())
+	result := map[string]any{}
+	expressions := stringSplit(expression)
+	if expressions == nil {
+		return nil, fmt.Errorf("invalid expression type: %T", expression)
+	}
+
+	regexAlphanum := regexp.MustCompile(`(?i)\{\s*(alphanum|alpha|num|any)(\s*:\s*([1-9][0-9]*))?\s*\}`)
+	regexAlpha := regexp.MustCompile(`([@]+)`)
+	regexNum := regexp.MustCompile(`([#]+)`)
+	regexSpace := regexp.MustCompile(`\s+`)
+	regexIdentifier := regexp.MustCompile(`(?i)\{\s*([a-z]+([\._]?[a-z0-9]+)*)\s*([\*/\+\-:\|][^\}]+)?\}`)
+	var regexFinal *regexp.Regexp
+
+	for _, expression := range expressions {
+		replaces := [][2]string{}
+		expression = strings.ReplaceAll(expression, "%", "%25")
+		expression = strings.ReplaceAll(expression, "\\{", "%7B")
+		expression = strings.ReplaceAll(expression, "\\}", "%7D")
+		expression = strings.ReplaceAll(expression, "\\#", "%23")
+		expression = strings.ReplaceAll(expression, "\\@", "%40")
+		exp := expression
+
+		for _, match := range regexAlphanum.FindAllStringSubmatch(exp, -1) {
+			var count = ""
+			if match[3] != "" {
+				count = fmt.Sprintf("{%s}", match[3])
+			} else if match[1] == "any" {
+				count = "*?"
+			} else {
+				count = "+?"
+			}
+			switch match[1] {
+			case "num":
+				replaces = append(replaces, [2]string{match[0], "[0-9]" + count})
+			case "alpha":
+				replaces = append(replaces, [2]string{match[0], "[a-z\\s]" + count})
+			case "alphanum":
+				replaces = append(replaces, [2]string{match[0], "[a-z0-9\\s]" + count})
+			case "any":
+				replaces = append(replaces, [2]string{match[0], "." + count})
+			}
+			exp = strings.Replace(exp, match[0], "", 1)
+		}
+
+		for _, alpha := range regexAlpha.FindAllStringSubmatch(exp, -1) {
+			var n string
+			if len(alpha[1]) > 1 {
+				n = fmt.Sprintf("{%d}", len(alpha[1]))
+			}
+			replaces = append(replaces, [2]string{alpha[0], fmt.Sprintf("[a-z]%s", n)})
+			exp = strings.Replace(exp, alpha[0], "", 1)
+		}
+
+		for _, num := range regexNum.FindAllStringSubmatch(exp, -1) {
+			var n string
+			if len(num[1]) > 1 {
+				n = fmt.Sprintf("{%d}", len(num[1]))
+			}
+			replaces = append(replaces, [2]string{num[0], fmt.Sprintf("[0-9]%s", n)})
+			exp = strings.Replace(exp, num[0], "", 1)
+		}
+
+		match := regexIdentifier.FindAllStringSubmatch(exp, -1)
+		if len(match) > 1 {
+			return nil, fmt.Errorf("multiple identifier: \"%s\"", expression)
+		}
+
+		var parser Parser
+		var target [3]string
+		if len(match) == 1 {
+			target = [3]string{match[0][0], match[0][1], strings.TrimSpace(match[0][3])}
+			for _, p := range parsers {
+				if p.Valid(target[1]) {
+					parser = p
+					break
+				}
+			}
+			if parser == nil {
+				return nil, fmt.Errorf("invalid expression : \"%s\"", expression)
+			}
+		}
+
+		expression = strings.ReplaceAll(expression, "%40", "@")
+		expression = strings.ReplaceAll(expression, "%23", "#")
+		expression = strings.ReplaceAll(expression, "%7D", "}")
+		expression = strings.ReplaceAll(expression, "%7B", "{")
+		expression = strings.ReplaceAll(expression, "%25", "%")
+		exp = regexp.QuoteMeta(expression)
+		for _, replace := range replaces {
+			exp = strings.Replace(exp, regexp.QuoteMeta(replace[0]), replace[1], 1)
+		}
+
+		if parser == nil {
+			exp = `(?i)` + regexSpace.ReplaceAllString(exp, `\s+`)
+			regexFinal = regexp.MustCompile(exp)
+			if !regexFinal.MatchString(text) {
+				return nil, fmt.Errorf("invalid expression : \"%s\"", expression)
+			}
+		} else {
+			parsed := false
+			for i, regex := range parser.Expressions() {
+				treg := regexp.QuoteMeta(target[0])
+				if m, n := len(exp), len(treg); n > m || exp[m-n:] != treg {
+					regex = regex + "?"
+				} else {
+					regex = regex + "$"
+				}
+				regex = `(?i)` + strings.Replace(exp, treg, "("+regex+")", 1)
+				regex = regexSpace.ReplaceAllString(regex, `\s+`)
+				regexFinal = regexp.MustCompile(regex)
+				if match := regexFinal.FindStringSubmatch(text); match != nil {
+					var value any
+					value = parser.Modify(match[1], i)
+
+					if val, err := execModifier(value, target[2]); err != nil {
+						return nil, fmt.Errorf("invalid expression : \"%s\"", target[0])
+					} else {
+						value = val
+					}
+					// if target[2] != "" {
+					// 	var modifier Modifier
+					// 	for _, m := range DefaultModifier() {
+					// 		if m.Valid(target[2]) {
+					// 			modifier = m
+					// 			break
+					// 		}
+					// 	}
+					// 	if modifier == nil {
+					// 		return nil, fmt.Errorf("invalid expression : \"%s\"", target[0])
+					// 	}
+					// 	if val, err := modifier.Modify(fmt.Sprintf("%v", value), target[2]); err != nil {
+					// 		return nil, fmt.Errorf("invalid expression : \"%s\"", target[0])
+					// 	} else {
+					// 		value = val
+					// 	}
+					// }
+					result[target[1]] = value
+					parsed = true
+					break
+				}
+			}
+			if !parsed {
+				return nil, fmt.Errorf("invalid expression : \"%s\"", expression)
 			}
 		}
 	}
-	// Check for unresolved placeholders
-	if err := resolved(str); err != nil {
+	return result, nil
+}
+
+func NumberCalculate(expression string, formatters ...Formatter) (any, error) {
+	expression, err := Format(expression, formatters...)
+	if err != nil {
+		return nil, err
+	}
+	return NewNumberModifier().Modify("", expression)
+}
+
+func StringModify[T string | []string](text string, expressions T, formatters ...Formatter) (string, error) {
+	expression := stringJoin(expressions)
+	expression, err := Format(expression, formatters...)
+	if err != nil {
 		return "", err
 	}
-	// Restore escaped placeholders
-	str = strings.ReplaceAll(str, "\\{", "{")
-	str = strings.ReplaceAll(str, "\\}", "}")
-	return str, nil
+	val, err := NewStringModifier().Modify(text, expression)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%v", val), nil
 }
