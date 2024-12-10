@@ -101,12 +101,13 @@ type DirectoryFormatter struct {
 	once   sync.Once
 	appdir string
 	curdir string
+	tmpdir string
 	err    error
 }
 
 // Valid checks if the identifier is a valid directory identifier.
 func (f *DirectoryFormatter) Valid(identifier string) bool {
-	return identifier == "appdir" || identifier == "curdir"
+	return identifier == "appdir" || identifier == "curdir" || identifier == "tmpdir"
 }
 
 // Value returns the directory path based on the identifier.
@@ -119,6 +120,7 @@ func (f *DirectoryFormatter) Value(identifier string) (any, error) {
 		}
 		f.appdir = filepath.Dir(exe)
 		f.curdir, f.err = os.Getwd()
+		f.tmpdir = os.TempDir()
 	})
 
 	if f.err != nil {
@@ -127,6 +129,8 @@ func (f *DirectoryFormatter) Value(identifier string) (any, error) {
 		return f.appdir, nil
 	} else if identifier == "curdir" {
 		return f.curdir, nil
+	} else if identifier == "tmpdir" {
+		return f.tmpdir, nil
 	}
 	return nil, fmt.Errorf("invalid identifier: \"%s\"", identifier)
 }
