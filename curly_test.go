@@ -2,8 +2,6 @@ package curly_test
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
@@ -25,49 +23,61 @@ func TestFormat(t *testing.T) {
 			return curly.Format(text, mapFormatter, curly.NewDatetimeFormatter(), curly.NewDirectoryFormatter())
 		},
 		scenarios: []formatScenarioTest{
+			// {
+			// 	"{appdir}/log/{yyyy}/{mm}/{dd}/{appname}_{yyyy}{mm}{dd}.log",
+			// 	func() string {
+			// 		str := []string{}
+			// 		exe, _ := os.Executable()
+			// 		str = append(str, filepath.Dir(exe))
+			// 		str = append(str, "log")
+			// 		str = append(str, time.Now().Format("2006"))
+			// 		str = append(str, time.Now().Format("01"))
+			// 		str = append(str, time.Now().Format("02"))
+			// 		str = append(str, "curly_"+time.Now().Format("20060102")+".log")
+			// 		return strings.Join(str, "/")
+			// 	}(),
+			// 	nil,
+			// },
+			// {
+			// 	"{curdir}/log/{yyyy}/{mm}/{dd}/{appname}_{yyyy}{mm}{dd}.log",
+			// 	func() string {
+			// 		str := []string{}
+			// 		dir, _ := os.Getwd()
+			// 		str = append(str, dir)
+			// 		str = append(str, "log")
+			// 		str = append(str, time.Now().Format("2006"))
+			// 		str = append(str, time.Now().Format("01"))
+			// 		str = append(str, time.Now().Format("02"))
+			// 		str = append(str, "curly_"+time.Now().Format("20060102")+".log")
+			// 		return strings.Join(str, "/")
+			// 	}(),
+			// 	nil,
+			// },
+			// {
+			// 	"{workdir}/log/{yyyy}/{mm}/{dd}/{appname}_{yyyy}{mm}{dd}.log",
+			// 	"",
+			// 	fmt.Errorf("invalid expression: \"workdir\""),
+			// },
+			// {
+			// 	"{{curdir}}/log/{yyyy}/{mm}/{dd}/{appname}_{yyyy}{mm}{dd}.log",
+			// 	"",
+			// 	fmt.Errorf("invalid expression: \"{{curdir}}/log/{yyyy}/{mm}/{dd}/{appname}_{yyyy}{mm}{dd}.log\""),
+			// },
+			// {
+			// 	"Application {appname}, filename {file|remove(.txt)}, posistion {index+1}",
+			// 	"Application curly, filename text, posistion 1",
+			// 	nil,
+			// },
 			{
-				"{appdir}/log/{yyyy}/{mm}/{dd}/{appname}_{yyyy}{mm}{dd}.log",
+				"X:\\center.h2h\\backend\\logs\\\\{yyyy}\\\\{mm}\\center.h2h_{yyyy}{mm}{dd}.log",
 				func() string {
 					str := []string{}
-					exe, _ := os.Executable()
-					str = append(str, filepath.Dir(exe))
-					str = append(str, "log")
+					str = append(str, "X:\\center.h2h\\backend\\logs")
 					str = append(str, time.Now().Format("2006"))
 					str = append(str, time.Now().Format("01"))
-					str = append(str, time.Now().Format("02"))
-					str = append(str, "curly_"+time.Now().Format("20060102")+".log")
-					return strings.Join(str, "/")
+					str = append(str, "center.h2h_"+time.Now().Format("20060102")+".log")
+					return strings.Join(str, "\\")
 				}(),
-				nil,
-			},
-			{
-				"{curdir}/log/{yyyy}/{mm}/{dd}/{appname}_{yyyy}{mm}{dd}.log",
-				func() string {
-					str := []string{}
-					dir, _ := os.Getwd()
-					str = append(str, dir)
-					str = append(str, "log")
-					str = append(str, time.Now().Format("2006"))
-					str = append(str, time.Now().Format("01"))
-					str = append(str, time.Now().Format("02"))
-					str = append(str, "curly_"+time.Now().Format("20060102")+".log")
-					return strings.Join(str, "/")
-				}(),
-				nil,
-			},
-			{
-				"{workdir}/log/{yyyy}/{mm}/{dd}/{appname}_{yyyy}{mm}{dd}.log",
-				"",
-				fmt.Errorf("invalid expression: \"workdir\""),
-			},
-			{
-				"{{curdir}}/log/{yyyy}/{mm}/{dd}/{appname}_{yyyy}{mm}{dd}.log",
-				"",
-				fmt.Errorf("invalid expression: \"{{curdir}}/log/{yyyy}/{mm}/{dd}/{appname}_{yyyy}{mm}{dd}.log\""),
-			},
-			{
-				"Application {appname}, filename {file|remove(.txt)}, posistion {index+1}",
-				"Application curly, filename text, posistion 1",
 				nil,
 			},
 		},

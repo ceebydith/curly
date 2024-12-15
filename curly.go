@@ -14,6 +14,7 @@ func Format(text string, formatters ...Formatter) (string, error) {
 
 	// Escape special characters
 	result := strings.ReplaceAll(text, "%", "%25")
+	result = strings.ReplaceAll(result, "\\\\", "%5C")
 	result = strings.ReplaceAll(result, "\\{", "%7B")
 	result = strings.ReplaceAll(result, "\\}", "%7D")
 
@@ -62,6 +63,7 @@ func Format(text string, formatters ...Formatter) (string, error) {
 	// Restore escaped characters
 	result = strings.ReplaceAll(result, "%7D", "}")
 	result = strings.ReplaceAll(result, "%7B", "{")
+	result = strings.ReplaceAll(result, "%5C", "\\")
 	result = strings.ReplaceAll(result, "%25", "%")
 
 	return result, nil
