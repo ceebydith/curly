@@ -127,7 +127,7 @@ type StringModifier struct{}
 // Valid checks if the modifier is a valid string transformation expression.
 func (m *StringModifier) Valid(modifier string) bool {
 	modifier = strings.Trim(modifier, " |") + "|"
-	reg := regexp.MustCompile(`(?i)^(\s*(pre|post|sub|cut|flip|remove|delete)\((.*?)\)\s*\|)+$`)
+	reg := regexp.MustCompile(`(?i)^(\s*(pre|post|sub|cut|flip|remove|delete|replace)\((.*?)\)\s*\|)+$`)
 	return reg.MatchString(modifier)
 }
 
@@ -135,7 +135,7 @@ func (m *StringModifier) Valid(modifier string) bool {
 func (m *StringModifier) Modify(value string, modifier string, onfailed ...func(value any, modifier string) (any, error)) (any, error) {
 	var result any = value
 	syntax := strings.Trim(modifier, " |")
-	reg := regexp.MustCompile(`(?i)^\s*(pre|post|sub|cut|flip|remove|delete)\((.*?)\)\s*$`)
+	reg := regexp.MustCompile(`(?i)^\s*(pre|post|sub|cut|flip|remove|delete|replace)\((.*?)\)\s*$`)
 	for _, expression := range stringSplit(syntax) {
 		value := fmt.Sprintf("%v", result)
 		match := reg.FindStringSubmatch(expression)
@@ -217,6 +217,12 @@ func (m *StringModifier) Modify(value string, modifier string, onfailed ...func(
 			}
 			reg := regexp.MustCompile(`(?i)([` + regexp.QuoteMeta(match[2]) + `]+)`)
 			result = reg.ReplaceAllString(value, "")
+		case "replace":
+			args := strings.Split(match[2], ",")
+			if len(args) != 2 {
+				return nil, fmt.Errorf("invalid expression: \"%s\"", expression)
+			}
+			result = strings.ReplaceAll(value, args[0], args[1])
 		default:
 			return nil, fmt.Errorf("invalid expression: \"%s\"", expression)
 		}

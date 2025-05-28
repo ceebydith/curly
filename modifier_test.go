@@ -76,6 +76,7 @@ func TestModifier(t *testing.T) {
 			{"abcdef", " | flip()", true, "fedcba", nil},
 			{"abcdef", " | remove(cde) ", true, "abf", nil},
 			{"aabbccddeeff", " | delete(cde)", true, "aabbff", nil},
+			{"abcdefghi", "|replace(ghi,xyz)", true, "abcdefxyz", nil},
 			{"abcdef", "pre()", true, nil, fmt.Errorf("invalid expression: \"%s\"", "pre()")},
 			{"abcdef", "post()", true, nil, fmt.Errorf("invalid expression: \"%s\"", "post()")},
 			{"abcdef", "sub(x)", true, nil, fmt.Errorf("invalid expression: \"%s\"", "sub(x)")},
